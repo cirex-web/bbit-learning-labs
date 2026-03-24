@@ -17,6 +17,8 @@ class mqConsumer(mqConsumerInterface):
 
         # Call setupRMQConnection
         self.setupRMQConnection()
+        self.createQueue()
+        self.bindQueueToExchange()
 
     def setupRMQConnection(self) -> None:
         # Set-up Connection to RabbitMQ service
@@ -29,33 +31,34 @@ class mqConsumer(mqConsumerInterface):
 
         # Create the exchange if not already present
         self.channel.exchange_declare(
-            exchange="Exchange Name", exchange_type="topic"
+            exchange=self.exchange_name, exchange_type="topic"
         )
 
-    def bindQueueToExchange(self, queueName: str, topic: str) -> None:
+
+    def bindQueueToExchange(self) -> None:
         # Bind Binding Key to Queue on the exchange
         self.channel.queue_bind(
-            queue=queueName,
+            queue=self.queue_name,
             routing_key=self.binding_key,
             exchange=self.exchange_name,
         )
 
-    def createQueue(self, queueName: str) -> None:
+    def createQueue(self) -> None:
         # Create Queue if not already present
-        self.channel.queue_declare(queue=queueName)
-
-        # Set-up Callback function for receiving messages
+        self.channel.queue_declare(queue=self.queue_name)
         self.channel.basic_consume(
-            queueName, self.on_message_callback, auto_ack=False
+            self.queue_name, self.on_message_callback, auto_ack=False
         )
+        
+
 
     def on_message_callback(self, channel, method_frame, header_frame, body):
         # De-Serialize JSON message object if Stock Object Sent
-        message = json.loads(body)
+        # message = json.loads(body)
 
         # Acknowledge And Print Message
         channel.basic_ack(method_frame.delivery_tag, False)
-        print(message)
+        print(body)
 
     def startConsuming(self) -> None:
         # Start consuming messages
